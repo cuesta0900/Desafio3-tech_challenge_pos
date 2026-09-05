@@ -27,7 +27,7 @@ spark = SparkSession.builder.appName("state_of_data_brasil_pipeline").getOrCreat
 # 0. CONFIGURAÇÃO
 # ---------------------------------------------------------------------------
 
-BUCKET = "s3://SEU-BUCKET-AQUI"  # troque pelo nome do bucket criado no S3
+BUCKET = "s3://teste-grupo-tech-220856710497-us-east-1-an"  # troque pelo nome do bucket criado no S3
 
 PATHS = {
     "raw": f"{BUCKET}/raw",

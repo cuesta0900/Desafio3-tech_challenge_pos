@@ -1,0 +1,25 @@
+# Tech Challenge Fase 3 - State of Data Brasil
+# Dependencias Python usadas FORA do AWS Glue (analise local, notebooks de
+# validacao/graficos e geracao do material executivo).
+#
+# Os 3 Glue Jobs em pipeline/ (bronze_job.py, silver_job.py, gold_job.py)
+# rodam no runtime gerenciado do AWS Glue (Spark/PySpark ja disponivel la)
+# e nao precisam deste arquivo -- eles sao colados direto no Script editor
+# do Glue Studio (ver README.md, secao "Passo a passo de execucao").
+#
+# Instalar com: pip install -r requirements.txt
+
+# EDA inicial em Pandas (analise_inicial/eda_pandas_inicial.py)
+pandas>=2.2
+numpy>=1.26
+
+# Notebooks de validacao e graficos (validacao_pipeline/, graficos/) --
+# leitura das tabelas Gold no Amazon Athena
+boto3>=1.34
+awswrangler>=3.9
+
+# Geracao dos graficos executivos (graficos/gerar_graficos.ipynb)
+matplotlib>=3.8
+
+# Geracao/edicao do material executivo em PowerPoint (docs/*.pptx)
+python-pptx>=1.0
