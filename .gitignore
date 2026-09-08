@@ -9,3 +9,11 @@ __pycache__/
 
 # AWS
 .aws-sam/
+
+# Teste
+analise_inicial/
+docs/State_of_Data_Brasil_Executivo.pptx
+validacao_pipeline/
+[DTAT] - Tech Challenge - Fase 3.pdf
+graficos/output/dados/
+

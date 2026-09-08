@@ -17,10 +17,9 @@ Data Brasil** (Data Hackers + Bain). Projeto desenvolvido na AWS Academy Lab
 
 ```
 .
-├── requirements.txt                           # Dependências Python para rodar os notebooks/scripts locais
+├── requirements.txt                           # Dependências Python para rodar o notebook de gráficos
 ├── docs/
-│   ├── State_of_Data_Brasil_Executivo.pptx      # Material executivo original
-│   ├── State_of_Data_Brasil_Executivo_v2.pptx   # Mesma estrutura, gráficos/números atualizados (Athena v2, pós-correção da Silver) -- o grupo decide qual entra na entrega
+│   ├── State_of_Data_Brasil_Executivo_v2.pptx   # Material executivo (entrega principal)
 │   └── arquitetura_aws_state_of_data.drawio     # Diagrama da arquitetura AWS
 ├── pipeline/
 │   ├── config.py                             # Mapeamentos/paths compartilhados pelos 3 jobs
@@ -29,20 +28,11 @@ Data Brasil** (Data Hackers + Bain). Projeto desenvolvido na AWS Academy Lab
 │   ├── gold_job.py                           # Job 3/3 — SILVER -> GOLD
 │   └── pipeline_bronze_silver_gold.py        # Execução anterior, mantida só como histórico
 ├── sql/
-│   ├── criar_tabelas_gold_athena.sql         # DDL das 8 tabelas Gold no Athena
+│   ├── criar_tabelas_gold_athena.sql         # Cria o banco + as 8 tabelas Gold no Athena
 │   └── queries_athena.sql                    # Queries que respondem às 7 perguntas de negócio
 ├── graficos/
-│   ├── gerar_graficos.ipynb                  # Gera os 9 gráficos executivos a partir do Athena (database v2)
-│   └── output/
-│       ├── *.png                             # Gráficos gerados (usados no material executivo)
-│       └── dados/*.csv                       # Dados brutos por trás de cada gráfico (conferência dos números)
-├── validacao_pipeline/
-│   └── comparar_databases_athena.ipynb       # Notebook de apoio: compara os databases Athena v1 x v2 (não é entrega, só validação)
-├── analise_inicial/
-│   ├── eda_pandas_inicial.py                 # EDA em Pandas usado para validar a lógica antes do PySpark
-│   ├── gold_data.json                        # Métricas agregadas da EDA inicial (não é a fonte oficial)
-│   └── data/
-│       └── silver_unificado_3edicoes.csv     # Base tratada e unificada (14.005 respondentes)
+│   ├── gerar_graficos.ipynb                  # Gera os 9 gráficos executivos a partir do Athena
+│   └── output/*.png                          # Gráficos gerados (usados no material executivo)
 └── bases/
     ├── Final Dataset - State of Data 2024 - Kaggle - df_survey_2024.csv
     ├── Final Dataset - State of Data 2025-2026 - Kaggle.csv
@@ -59,7 +49,7 @@ em `docs/arquitetura_aws_state_of_data.drawio` — abra em
 2. **Bronze**: Glue Job (`bronze_job.py`, PySpark) lê os CSVs e grava em Parquet, particionado por `ano_pesquisa`
 3. **Silver**: Glue Job (`silver_job.py`) faz limpeza, padronização de categorias (gênero, uso de IA, cargo) e unificação das 3 edições em schema comum
 4. **Gold**: Glue Job (`gold_job.py`) gera as agregações de negócio que respondem às 7 perguntas do desafio
-5. **Catalog**: as 8 tabelas Gold são criadas no Glue Data Catalog (`database state_of_data_gold_v2`) via `sql/criar_tabelas_gold_athena.sql`
+5. **Catálogo**: as 8 tabelas Gold são criadas no Glue Data Catalog (`database state_of_data_gold_v2`) via `sql/criar_tabelas_gold_athena.sql`
 6. **Consumo**: consultas SQL no Amazon Athena (`sql/queries_athena.sql`) + notebook de gráficos (`graficos/gerar_graficos.ipynb`) + DataViz no material executivo
 
 ## Decisões de arquitetura do pipeline
@@ -84,35 +74,63 @@ paths compartilhados (`COLMAP`, `ARQUIVOS`, `REGIAO_POR_UF`,
 
 ## Passo a passo de execução
 
-### 1. Bucket e dados brutos
+Pensado para rodar do zero, numa conta AWS Academy Lab recém-iniciada (sem
+nada criado ainda). Região usada pelo grupo: **us-east-1**.
 
-Crie/confirme o bucket S3 com as pastas `raw/`, `bronze/`, `silver/`,
-`gold/`, e suba os 3 CSVs do Kaggle em `raw/` com os nomes exatamente como
-em `pipeline/config.py` → `ARQUIVOS`.
+### 1. Bucket S3 e dados brutos
+
+1. No console da AWS, use a busca no topo e digite **S3** → abra o
+   serviço **S3**.
+2. Clique em **Create bucket**, dê um nome (precisa ser único
+   globalmente, ex.: `state-of-data-seunome-2026`) e confirme a região
+   **us-east-1**. Deixe o resto com as opções padrão e clique em
+   **Create bucket**.
+3. Dentro do bucket criado, use **Create folder** para criar as 4 pastas:
+   `raw/`, `bronze/`, `silver/`, `gold/`.
+4. Entre em `raw/` e faça upload (**Upload**) dos 3 CSVs da pasta `bases/`
+   deste repositório, **mantendo os nomes de arquivo exatamente como
+   estão** (o dicionário `ARQUIVOS` em `pipeline/config.py` já está
+   calibrado para esses nomes).
 
 ### 2. Subir o `config.py` para o S3
 
-Envie **só o `config.py`** para um prefixo de scripts do seu bucket, ex.:
-`s3://<bucket>/scripts/config.py` (os outros 3 arquivos — `bronze_job.py`,
-`silver_job.py`, `gold_job.py` — não precisam ir para o S3).
+Envie **só o `config.py`** (dentro de `pipeline/`) para um prefixo de
+scripts do seu bucket, ex.: crie a pasta `scripts/` no mesmo bucket e
+faça upload de `config.py` para lá (os outros 3 arquivos —
+`bronze_job.py`, `silver_job.py`, `gold_job.py` — **não precisam** ir
+para o S3, eles são colados direto no editor no passo 3).
 
-Depois de subir, abra o objeto `config.py` no console do S3 e copie a
-**Object URL** dele (o link que aparece na aba "Object overview" — começa
-com `https://`). É essa URL `https://...` que vai no
-campo "Python library path" do Job — usar `s3://bucket/chave`
-nesse campo **não funcionou** para o grupo, mesmo sendo o formato mais
-comum na documentação da AWS.
+Depois de subir, clique no objeto `config.py` dentro do console do S3 e
+copie a **Object URL** dele (o link que aparece na aba "Object overview"
+— começa com `https://`, não com `s3://`). É essa URL que vai no campo
+"Python library path" do Job (passo 4) — usar `s3://bucket/chave` nesse
+campo **não funcionou** para o grupo, mesmo sendo o formato mais comum na
+documentação da AWS.
 
 ### 3. Criar os 3 Glue Jobs
 
-Para cada um dos 3 Jobs (`bronze`, `silver`, `gold`), no Glue Studio:
+Na busca do console, digite **Glue** → abra **AWS Glue**. No menu à
+esquerda, clique em **ETL jobs**.
 
-1. **ETL jobs → Create job → Script editor** (engine: Spark).
-2. No editor de script, cole o conteúdo do arquivo correspondente
-   (`bronze_job.py`, `silver_job.py` ou `gold_job.py`) direto no editor.
-3. IAM Role: `LabRole`.
+Repita os passos abaixo **3 vezes** (um para bronze, um para silver, um
+para gold):
 
-### 4. Configurar o `config.py` como Python library path (em cada um dos 3 Jobs)
+1. Clique em **Create job**, escolha o template **Script editor** e
+   engine **Spark**.
+2. Abra o arquivo correspondente no seu editor local (`bronze_job.py`,
+   `silver_job.py` ou `gold_job.py`, dentro de `pipeline/`), selecione
+   todo o conteúdo (Ctrl+A / Cmd+A), copie e cole direto na área de
+   script do Glue, substituindo o conteúdo de exemplo que já vem lá.
+3. Dê um nome ao Job que deixe claro qual camada é (ex.:
+   `state-of-data-bronze`, `state-of-data-silver`, `state-of-data-gold`).
+4. Na seção **IAM Role**, selecione **LabRole** no dropdown (é o papel já
+   liberado no AWS Academy Lab — não existe opção de criar um papel
+   próprio nesse ambiente).
+5. Clique em **Save** no canto superior direito.
+
+### 4. Configurar o `config.py` como Python library path (nos 3 Jobs)
+
+Repita nos **3 Jobs** criados no passo anterior:
 
 1. Com o Job aberto, clique na aba **"Job details"** (fica ao lado de
    "Visual"/"Script", no topo da tela do Job).
@@ -120,83 +138,95 @@ Para cada um dos 3 Jobs (`bronze`, `silver`, `gold`), no Glue Studio:
    expandir, se ela estiver recolhida.
 3. Encontre o campo **"Python library path"**.
 4. Cole ali a **Object URL** (`https://...`) do `config.py` que você
-   copiou no passo 2.
+   copiou no passo 2 — **não** o caminho `s3://...`.
 5. Clique em **"Save"** no canto superior direito do Job.
-6. Repita esses 5 passos nos **3 Jobs** (bronze, silver, gold) — é o
-   mesmo `config.py`/mesma URL nos três.
 
-### 5. Rodar na ordem correta
+### 5. Rodar os Jobs na ordem correta
 
-`bronze_job` → aguardar concluir → `silver_job` → aguardar concluir →
-`gold_job`. Cada um só lê o que o anterior gravou no S3, então não dá pra
-rodar fora de ordem (ex.: Gold antes de Silver falha por não achar dado em
-`silver/`).
+Na tela de cada Job, clique em **Run** (canto superior direito) e
+acompanhe na aba **Runs** até o status virar **Succeeded** (leva de 2 a 5
+minutos por Job). A ordem importa — cada um só lê o que o anterior
+gravou no S3:
 
-### 6. Catalogar as tabelas Gold no Athena
+`bronze` → aguardar Succeeded → `silver` → aguardar Succeeded → `gold`
 
-Rode `sql/criar_tabelas_gold_athena.sql` (uma instrução `CREATE TABLE` por
-vez — o Athena não aceita múltiplas na mesma execução, e lembre de trocar
-o bucket em todas as linhas `LOCATION` antes de rodar). **Não use um Glue
-Crawler apontando direto pra `gold/`** — as 8 subpastas têm nomes
-parecidos (`q1_...`, `q2_...`) e o crawler tende a agrupá-las como
-partições de uma única tabela em vez de 8 tabelas separadas.
+Se algum Job falhar (status **Failed**), abra a aba **Runs** e clique em
+**Logs**/**Error logs** dessa execução — a causa mais comum é o nome do
+bucket em `pipeline/config.py` (`BUCKET = "..."`) não bater com o bucket
+real que você criou no passo 1.
 
-### 7. Validar com as queries de negócio
+### 6. Criar o banco de dados no Athena
 
-Rode `sql/queries_athena.sql` para conferir as respostas às 7 perguntas do
-desafio.
+**Esse passo é fácil de esquecer numa conta nova, e sem ele os próximos
+passos falham** (a conta AWS Academy Lab não vem com nenhum banco/database
+pré-criado no Athena).
 
-## Notebooks auxiliares (validação e gráficos)
+1. Na busca do console, digite **Athena** → abra **Amazon Athena** →
+   **Query editor**.
+2. Se aparecer um aviso pedindo para configurar um **"query result
+   location"**, clique em **Edit settings**, escolha (ou crie) uma pasta
+   no seu bucket S3 para isso (ex.: `s3://<bucket>/athena-results/`) e
+   salve — é só uma vez, o Athena precisa de um lugar no S3 pra guardar o
+   resultado das consultas.
+3. Abra o arquivo `sql/criar_tabelas_gold_athena.sql` deste repositório.
+   A **primeira linha executável** é:
+   ```sql
+   CREATE DATABASE IF NOT EXISTS state_of_data_gold_v2;
+   ```
+   Cole **só essa linha** na caixa de query do Athena e clique em **Run**.
+   Isso cria o banco `state_of_data_gold_v2`, que vai aparecer no painel
+   à esquerda em "Database". Sem esse passo, todo `CREATE TABLE` do
+   próximo passo falha com erro de "database does not exist" (ou
+   similar) — é exatamente o que acontece rodando numa conta pela
+   primeira vez.
+4. No painel à esquerda, no dropdown de bancos ("Database"), selecione
+   `state_of_data_gold_v2` para usá-lo como banco atual antes de seguir
+   para o próximo passo.
 
-Além do pipeline em si, o repositório tem 2 notebooks Python que consomem
-as tabelas Gold direto do Athena (via `awswrangler`/`boto3`, com
-credenciais temporárias do AWS Academy Lab coladas manualmente em uma
-célula no topo de cada um — nunca commitadas). Para rodá-los localmente,
-instale as dependências com:
+### 7. Criar as 8 tabelas Gold no Athena
 
-```
-pip install -r requirements.txt
-```
+No mesmo `sql/criar_tabelas_gold_athena.sql`, agora rode **cada
+`CREATE EXTERNAL TABLE` separadamente** (o Athena não aceita várias
+instruções na mesma execução) — são 8 no total, uma por pergunta de
+negócio. **Antes de rodar, troque `BUCKET` pelo nome real do seu bucket
+em todas as linhas `LOCATION`.**
 
-- **`validacao_pipeline/comparar_databases_athena.ipynb`** — compara
-  contagens e valores entre dois databases Athena (ex.: o pipeline antigo
-  x o novo, após uma migração de bucket) para garantir que a refatoração
-  do pipeline não mudou os resultados de negócio. É um notebook de apoio
-  para a migração feita neste projeto — não faz parte da entrega final.
-- **`graficos/gerar_graficos.ipynb`** — busca as 9 queries de
-  `sql/queries_athena.sql` (sem duplicar a lógica SQL, a regra já está
-  toda na query), monta os 9 gráficos executivos com a paleta e as
-  especificações visuais usadas no material, salva os PNGs em
-  `graficos/output/` e os dados brutos de cada um em
-  `graficos/output/dados/*.csv` (para conferir os números exatos sem
-  depender dos rótulos arredondados do gráfico). Foi esse notebook que
-  gerou os números usados em `docs/State_of_Data_Brasil_Executivo_v2.pptx`.
+**Não use um Glue Crawler apontando direto pra `gold/`** — as 8
+subpastas têm nomes parecidos (`q1_...`, `q2_...`) e o crawler tende a
+agrupá-las como partições de uma única tabela em vez de 8 tabelas
+separadas.
 
-## Checkpoint de conferência
+### 8. Validar com as queries de negócio
 
-Depois de rodar os 3 Jobs, confira no Athena que as 8 tabelas Gold têm
-contagens de linha consistentes com o run anterior (bucket anterior). Os
-nomes de tabela, colunas e paths no S3 foram mantidos idênticos entre as
-execuções — se algo não bater, é sinal de que vale a pena investigar antes
-de seguir para a próxima etapa do roadmap (script de gráficos a partir do
-Athena). **Confira também o total de respondentes por ano** (soma deve
-bater com 14.005) — foi assim que o bug do `dropDuplicates()` (ver
-"Decisões de arquitetura" acima) foi encontrado.
+Rode `sql/queries_athena.sql` (também uma consulta por vez) para conferir
+as respostas às 7 perguntas do desafio.
+
+## Gráficos executivos
+
+`graficos/gerar_graficos.ipynb` busca as 9 queries de
+`sql/queries_athena.sql` (sem duplicar a lógica SQL — a regra já está
+toda na query), monta os 9 gráficos executivos com a paleta e as
+especificações visuais usadas no material, e salva os PNGs em
+`graficos/output/`, prontos para colar em
+`docs/State_of_Data_Brasil_Executivo_v2.pptx`.
+
+Para rodar localmente: instale as dependências com
+`pip install -r requirements.txt`, abra o notebook, cole suas
+credenciais temporárias do AWS Academy Lab na célula da seção 1 (nunca
+commitadas) e rode todas as células em ordem.
 
 ## Trocar de bucket (nova conta/execução no AWS Academy Lab)
 
 Edite só a linha `BUCKET = "..."` em `pipeline/config.py` — os 3 Jobs
 herdam o valor novo automaticamente via `PATHS`. Lembre de também
 atualizar o `LOCATION` em `sql/criar_tabelas_gold_athena.sql` antes de
-recriar as tabelas no Athena (o próprio arquivo já tem essa instrução), e
-de repetir os passos 2 e 4 acima (novo `config.py`, nova Object URL) já
-que o link do S3 muda com o bucket.
+recriar as tabelas no Athena, e de repetir os passos 2 e 4 acima (novo
+`config.py`, nova Object URL) já que o link do S3 muda com o bucket.
 
 ## Principais insights (ver material executivo para detalhes)
 
-Reconferidos em `graficos/gerar_graficos.ipynb` contra o Athena
-(`state_of_data_gold_v2`), já com a correção do `dropDuplicates()`
-aplicada:
+Com base nas queries de `sql/queries_athena.sql`, rodadas contra o
+Athena (`database state_of_data_gold_v2`):
 
 - Analista de Dados e Cientista de Dados somam 44% da base com cargo
   informado
@@ -205,8 +235,3 @@ aplicada:
   (2024) → 22,0% (2025)
 - Sudeste concentra 62% dos respondentes (2023–2025 combinado)
 - Python e SQL dominam como linguagens de trabalho
-
-> Senioridade (Júnior/Pleno/Sênior), distribuição regional e
-> senioridade×região vieram idênticas ao material antigo — a correção
-> só mudou números de cargos, respondentes/ano e gênero (ver diff entre
-> `docs/State_of_Data_Brasil_Executivo.pptx` e `..._v2.pptx`).

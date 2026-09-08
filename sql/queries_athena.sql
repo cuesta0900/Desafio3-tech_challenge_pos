@@ -79,5 +79,5 @@ ORDER BY regiao, qtd DESC;
 --    Dados e IA? -> combine os resultados das queries 1, 3 e 5 acima para
 --    construir a narrativa (crescimento de vagas + baixa diversidade +
 --    alta adoção de IA = oportunidades de capacitação e contratação).
--- Ver slide 10 do executivo (State_of_Data_Brasil_Executivo.pptx) para a
+-- Ver slide 10 do executivo (State_of_Data_Brasil_Executivo_v2.pptx) para a
 -- síntese já pronta dessas recomendações.
