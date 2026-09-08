@@ -94,6 +94,10 @@ nada criado ainda). Região usada pelo grupo: **us-east-1**.
 
 ### 2. Subir o `config.py` para o S3
 
+Antes de subir o `config.py` para a S3, abra o arquivo e instancie
+na variável **BUCKET** o mesmo nome criado para a bucket do S3,
+depois **salve o arquivo**
+
 Envie **só o `config.py`** (dentro de `pipeline/`) para um prefixo de
 scripts do seu bucket, ex.: crie a pasta `scripts/` no mesmo bucket e
 faça upload de `config.py` para lá (os outros 3 arquivos —
@@ -104,8 +108,7 @@ Depois de subir, clique no objeto `config.py` dentro do console do S3 e
 copie a **Object URL** dele (o link que aparece na aba "Object overview"
 — começa com `https://`, não com `s3://`). É essa URL que vai no campo
 "Python library path" do Job (passo 4) — usar `s3://bucket/chave` nesse
-campo **não funcionou** para o grupo, mesmo sendo o formato mais comum na
-documentação da AWS.
+campo **não funcionou** para o grupo.
 
 ### 3. Criar os 3 Glue Jobs
 
@@ -138,7 +141,7 @@ Repita nos **3 Jobs** criados no passo anterior:
    expandir, se ela estiver recolhida.
 3. Encontre o campo **"Python library path"**.
 4. Cole ali a **Object URL** (`https://...`) do `config.py` que você
-   copiou no passo 2 — **não** o caminho `s3://...`.
+   copiou no passo 2.
 5. Clique em **"Save"** no canto superior direito do Job.
 
 ### 5. Rodar os Jobs na ordem correta
@@ -157,9 +160,8 @@ real que você criou no passo 1.
 
 ### 6. Criar o banco de dados no Athena
 
-**Esse passo é fácil de esquecer numa conta nova, e sem ele os próximos
-passos falham** (a conta AWS Academy Lab não vem com nenhum banco/database
-pré-criado no Athena).
+A conta AWS Academy Lab não vem com nenhum banco/database
+pré-criado no Athena, por este motivo, criamos este passo.
 
 1. Na busca do console, digite **Athena** → abra **Amazon Athena** →
    **Query editor**.
@@ -191,7 +193,7 @@ instruções na mesma execução) — são 8 no total, uma por pergunta de
 negócio. **Antes de rodar, troque `BUCKET` pelo nome real do seu bucket
 em todas as linhas `LOCATION`.**
 
-**Não use um Glue Crawler apontando direto pra `gold/`** — as 8
+**Não usamos um Glue Crawler apontando direto pra `gold/`** pois as 8
 subpastas têm nomes parecidos (`q1_...`, `q2_...`) e o crawler tende a
 agrupá-las como partições de uma única tabela em vez de 8 tabelas
 separadas.
@@ -207,13 +209,12 @@ as respostas às 7 perguntas do desafio.
 `sql/queries_athena.sql` (sem duplicar a lógica SQL — a regra já está
 toda na query), monta os 9 gráficos executivos com a paleta e as
 especificações visuais usadas no material, e salva os PNGs em
-`graficos/output/`, prontos para colar em
-`docs/State_of_Data_Brasil_Executivo_v2.pptx`.
+`graficos/output/`.
 
 Para rodar localmente: instale as dependências com
 `pip install -r requirements.txt`, abra o notebook, cole suas
-credenciais temporárias do AWS Academy Lab na célula da seção 1 (nunca
-commitadas) e rode todas as células em ordem.
+credenciais temporárias do AWS Academy Lab na célula da seção 1
+e rode todas as células em ordem.
 
 ## Trocar de bucket (nova conta/execução no AWS Academy Lab)
 
